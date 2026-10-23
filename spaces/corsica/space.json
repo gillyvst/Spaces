@@ -1,0 +1,114 @@
+{
+  "schema": 1,
+  "id": "corsica",
+  "name": "Corsica Studios",
+  "location": "London",
+
+  "defaults": {
+    "direct_level": -3.0,
+    "room_level": 0.0,
+    "amb_level": -6.0
+  },
+
+  "rooms": [
+    {
+      "id": "room1",
+      "name": "Room 1",
+      "image": "images/Room 1.jpg",
+      "defaultIr": "middle-ortf",
+      "defaultAmbience": "booth",
+      "irs": [
+        { "id": "front-ortf",          "name": "Front · ORTF",                "type": "trueStereo",
+          "left": "irs/Room 1/2 Room 1 - Front ORTF Louder Volume, 45s Sweep L.aif",
+          "right": "irs/Room 1/2 Room 1 - Front ORTF Louder Volume, 45s Sweep R.aif" },
+        { "id": "front-spaced",        "name": "Front · Spaced Pair",         "type": "trueStereo",
+          "left": "irs/Room 1/Room 1 - Spaced Pair, At the Front. Louder L.aif",
+          "right": "irs/Room 1/Room 1 - Spaced Pair, At the Front. Louder R.aif" },
+        { "id": "middle-ortf",         "name": "Middle · ORTF",               "type": "trueStereo",
+          "left": "irs/Room 1/2 Room 1 - Middle ORTF Louder Volume, 45s Sweep L.aif",
+          "right": "irs/Room 1/2 Room 1 - Middle ORTF Louder Volume, 45s Sweep R.aif" },
+        { "id": "middle-ortf-take2",   "name": "Middle · ORTF (take 2)",      "type": "trueStereo",
+          "left": "irs/Room 1/Room 1 - Middle ORTF Louder Volume, 45s Sweep L.aif",
+          "right": "irs/Room 1/Room 1 - Middle ORTF Louder Volume, 45s Sweep R.aif" },
+        { "id": "middle-spaced",       "name": "Middle · Spaced Pair",        "type": "trueStereo",
+          "left": "irs/Room 1/2 Room 1 - Middle Spaced Pair Louder Volume, 45s Sweep L.aif",
+          "right": "irs/Room 1/2 Room 1 - Middle Spaced Pair Louder Volume, 45s Sweep R.aif" },
+        { "id": "spaced-1m",           "name": "Spaced Pair 1m",              "type": "trueStereo",
+          "left": "irs/Room 1/Room 1 - Spaced Pair 1m Louder Volume, 45s Sweep L.aif",
+          "right": "irs/Room 1/Room 1 - Spaced Pair 1m Louder Volume, 45s Sweep R.aif" },
+        { "id": "spaced-1m-medium",    "name": "Spaced Pair 1m (medium vol)", "type": "trueStereo",
+          "left": "irs/Room 1/Room 1 - Spaced Pair 1m Medium Volume, 45s Sweep L.aif",
+          "right": "irs/Room 1/Room 1 - Spaced Pair 1m Medium Volume, 45s Sweep R.aif" },
+        { "id": "back-ortf",           "name": "Back · ORTF",                 "type": "trueStereo",
+          "left": "irs/Room 1/2 Room 1 - Back ORTF Louder Volume, 45s Sweep L.aif",
+          "right": "irs/Room 1/2 Room 1 - Back ORTF Louder Volume, 45s Sweep R.aif" },
+        { "id": "back-spaced",         "name": "Back · Spaced Pair",          "type": "trueStereo",
+          "left": "irs/Room 1/2 Room 1 - Back Spaced Pair Louder Volume, 45s Sweep L.aif",
+          "right": "irs/Room 1/2 Room 1 - Back Spaced Pair Louder Volume, 45s Sweep R.aif" },
+        { "id": "booth-binaural",      "name": "DJ Booth · Binaural",         "type": "trueStereo", "swapLR": true,
+          "left": "irs/Room 1/2 Room 1 - Booth Binural Louder Volume, 45s Sweep L.aif",
+          "right": "irs/Room 1/2 Room 1 - Booth Binural Louder Volume, 45s Sweep R.aif" },
+        { "id": "iphone-middle",       "name": "iPhone · Middle",             "type": "stereo",
+          "file": "irs/Room 1/2 Room 1 -iPhone Middle.aif" }
+      ],
+      "ambience": [
+        { "id": "booth", "name": "Booth", "file": "ambience/Corsica - Room 1 Booth (Looped).wav", "gainDb": -9.0 }
+      ]
+    },
+    {
+      "id": "room2",
+      "name": "Room 2",
+      "image": "images/Room 2.jpg",
+      "defaultIr": "middle-ortf",
+      "defaultAmbience": "back",
+      "irs": [
+        { "id": "front-ortf",          "name": "Front · ORTF",                "type": "trueStereo",
+          "left": "irs/Room 2/Room 2 - ORTF Front L.aif",
+          "right": "irs/Room 2/Room 2 - ORTF Front R.aif" },
+        { "id": "middle-front-ortf",   "name": "Middle Front · ORTF",         "type": "trueStereo",
+          "left": "irs/Room 2/Room 2 - ORTF Middle Front L.aif",
+          "right": "irs/Room 2/Room 2 - ORTF Middle Front R.aif" },
+        { "id": "middle-front-ortf-quiet", "name": "Middle Front · ORTF (−5 dB)", "type": "trueStereo",
+          "left": "irs/Room 2/Room 2 - ORTF Middle Front, -5db less L.aif",
+          "right": "irs/Room 2/Room 2 - ORTF Middle Front, -5db less R.aif" },
+        { "id": "middle-ortf",         "name": "Middle · ORTF",               "type": "trueStereo",
+          "left": "irs/Room 2/Room 2 - ORTF Middle L.aif",
+          "right": "irs/Room 2/Room 2 - ORTF Middle R.aif" },
+        { "id": "middle-ortf-medium",  "name": "Middle · ORTF (med vol)",     "type": "trueStereo",
+          "left": "irs/Room 2/Room 2 - ORTF Middle, med volume L.aif",
+          "right": "irs/Room 2/Room 2 - ORTF Middle, med volume R.aif" },
+        { "id": "back-ortf",           "name": "Back · ORTF",                 "type": "trueStereo",
+          "left": "irs/Room 2/Room 2 - ORTF Back L.aif",
+          "right": "irs/Room 2/Room 2 - ORTF Back R.aif" },
+        { "id": "right-side-ortf",     "name": "Right Side · ORTF",           "type": "trueStereo",
+          "left": "irs/Room 2/Room 2 - ORTF Right Hand Side L.aif",
+          "right": "irs/Room 2/Room 2 - ORTF Right Hand Side R.aif" },
+        { "id": "booth-ortf",          "name": "DJ Booth · ORTF",             "type": "trueStereo", "swapLR": true,
+          "left": "irs/Room 2/Room 2 Booth ORTF L.aif",
+          "right": "irs/Room 2/Room 2 Booth ORTF R.aif" },
+        { "id": "booth-sides",         "name": "DJ Booth · Sides",            "type": "trueStereo", "swapLR": true,
+          "left": "irs/Room 2/Room 2 Booth Sides L.aif",
+          "right": "irs/Room 2/Room 2 Booth Sides R.aif" },
+        { "id": "iphone-front",        "name": "iPhone · Front",              "type": "stereo",
+          "file": "irs/Room 2/Room 2 - iPhone Front.aif" }
+      ],
+      "ambience": [
+        { "id": "back", "name": "Back (Best)", "file": "ambience/Corsica - Room 2 Back (Looped, Best, Smaller).wav", "gainDb": 0.0 }
+      ]
+    }
+  ],
+
+  "presets": [
+    { "name": "Room 1 Dancefloor", "room": "room1", "ir": "middle-ortf",    "ambience": "booth" },
+    { "name": "Room 1 Front",      "room": "room1", "ir": "front-ortf",     "ambience": "booth" },
+    { "name": "Room 1 Back",       "room": "room1", "ir": "back-ortf",      "ambience": "booth" },
+    { "name": "Room 1 DJ Booth",   "room": "room1", "ir": "booth-binaural", "ambience": "booth" },
+    { "name": "Room 1 iPhone",     "room": "room1", "ir": "iphone-middle",  "ambience": "booth",
+      "params": { "direct_length": 20.0 } },
+    { "name": "Room 2 Dancefloor", "room": "room2", "ir": "middle-ortf",    "ambience": "back" },
+    { "name": "Room 2 Front",      "room": "room2", "ir": "front-ortf",     "ambience": "back" },
+    { "name": "Room 2 DJ Booth",   "room": "room2", "ir": "booth-ortf",     "ambience": "back" },
+    { "name": "Room 2 iPhone",     "room": "room2", "ir": "iphone-front",   "ambience": "back",
+      "params": { "direct_length": 20.0 } }
+  ]
+}
