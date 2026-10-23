@@ -22,7 +22,7 @@
   <PARAM id="mix" value="100.0"/>
   <PARAM id="mono" value="0.0"/>
   <PARAM id="out_trim" value="1.788139343261719e-7"/>
-  <PARAM id="room_drive" value="0.0"/>
+  <PARAM id="room_drive" value="10.0"/>
   <PARAM id="room_eq_b1_freq" value="249.9999542236328"/>
   <PARAM id="room_eq_b1_gain" value="2.682209014892578e-7"/>
   <PARAM id="room_eq_b1_q" value="0.6999999284744263"/>
