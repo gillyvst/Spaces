@@ -54,7 +54,7 @@ jobs:
           # On failure, surface the end of the log as an annotation so it can
           # be read from the run summary.
           auval -strict -v aufx Spcs Gily > auval.log 2>&1 || {
-            echo "::error title=auval failed::$(tail -80 auval.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            echo "::error title=auval failed::$(grep -n -B6 -A3 -iE 'error|fail|warning' auval.log | head -120 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
             exit 1
           }
           tail -30 auval.log
