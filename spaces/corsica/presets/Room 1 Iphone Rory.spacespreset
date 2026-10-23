@@ -2,7 +2,7 @@
 
 <SpacesState spaceId="corsica" roomId="room1" irId="iphone-middle" ambienceId="booth"
              preset="Room 1 Iphone Rory" version="0.1.0">
-  <PARAM id="amb_level" value="-34.90000152587891"/>
+  <PARAM id="amb_level" value="-32.4"/>
   <PARAM id="amb_on" value="1.0"/>
   <PARAM id="auto_gain" value="0.0"/>
   <PARAM id="bypass" value="0.0"/>
