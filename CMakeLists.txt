@@ -101,6 +101,7 @@ if(SPACES_BUILD_TESTS)
     target_sources(SpacesTests PRIVATE tests/SpacesTests.cpp)
     target_compile_definitions(SpacesTests PRIVATE
         SPACES_TEST_PACKS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/spaces"
-        JucePlugin_Name="Spaces")
+        JucePlugin_Name="Spaces"
+        JUCE_MODAL_LOOPS_PERMITTED=1)
     target_link_libraries(SpacesTests PRIVATE SpacesCore)
 endif()

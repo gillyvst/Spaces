@@ -445,7 +445,7 @@ static void testClicks (bool quick)
     // A hard (unfaded) switch on this -12 dBFS sine shows up at around
     // -20 dBFS in this band. Require everything to stay below -65 dBFS
     // (over 50 dB under the signal).
-    check (Decibels::gainToDecibels (floorLevel) + worst < -65.0f, "no clicks (worst: " + worstName + ", " + String (worst, 1) + " dBFS)");
+    check (worst < -65.0f, "no clicks (worst: " + worstName + ", " + String (worst, 1) + " dBFS)");
 }
 
 static void testAllocations()
@@ -610,6 +610,41 @@ static void dump (const File& folder)
     }
 }
 
+// Renders the editor to PNGs (default view, Room 2, EQ drawer, 150%).
+static void screenshots (const File& folder)
+{
+    folder.createDirectory();
+    Harness h;
+    std::unique_ptr<AudioProcessorEditor> editor (h.processor->createEditor());
+    editor->setVisible (true);
+
+    const auto shoot = [&] (const String& name)
+    {
+        for (int i = 0; i < 20; ++i)
+        {
+            MessageManager::getInstance()->runDispatchLoopUntil (30);
+            h.renderSilence (0.03);
+        }
+
+        auto image = editor->createComponentSnapshot (editor->getLocalBounds(), true, 1.0f);
+        auto file = folder.getChildFile (name + ".png");
+        file.deleteFile();
+        FileOutputStream out (file);
+        PNGImageFormat().writeImageToStream (image, out);
+        std::cout << "wrote " << file.getFullPathName() << std::endl;
+    };
+
+    shoot ("ui-room1");
+    h.processor->selectRoom (1);
+    shoot ("ui-room2");
+
+    for (auto* c : editor->getChildren().getFirst()->getChildren())
+        if (auto* b = dynamic_cast<TextButton*> (c); b != nullptr && b->getButtonText() == "EQ")
+            b->triggerClick();
+
+    shoot ("ui-eq");
+}
+
 int main (int argc, char** argv)
 {
     ScopedJuceInitialiser_GUI init;
@@ -618,6 +653,13 @@ int main (int argc, char** argv)
     setenv ("SPACES_PACKS_DIR", SPACES_TEST_PACKS_DIR, 1);
     // Keep test runs away from the real user folders.
     setenv ("HOME", File::getSpecialLocation (File::tempDirectory).getChildFile ("spaces-test-home").getFullPathName().toRawUTF8(), 1);
+
+    if (argc > 2 && String (argv[1]) == "--screenshots")
+    {
+        setenv ("SPACES_PACKS_DIR", SPACES_TEST_PACKS_DIR, 1);
+        screenshots (File (argv[2]));
+        return 0;
+    }
 
     if (argc > 2 && String (argv[1]) == "--dump")
     {

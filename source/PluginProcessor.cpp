@@ -523,6 +523,12 @@ SpacesProcessor::SpacesProcessor()
     applied = clampSelection ({ readParamIndex (ParamIDs::space), readParamIndex (ParamIDs::room),
                                 readParamIndex (ParamIDs::ir),    readParamIndex (ParamIDs::ambience) });
     presets.refresh();
+
+    // A fresh instance starts out identical to the first factory preset
+    // (the space's defaults), so show that name rather than "Init".
+    if (! presets.getEntries().isEmpty())
+        presets.setCurrentByName (presets.getEntries().getFirst().name);
+
     timerCallback();
     startTimerHz (30);
 }
