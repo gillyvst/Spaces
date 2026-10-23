@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<SpacesState spaceId="corsica" roomId="room1" irId="back-ortf" ambienceId="booth"
+             preset="Room 1 Back ORTF Rory" version="0.1.0">
+  <PARAM id="amb_level" value="-35.59999847412109"/>
+  <PARAM id="amb_on" value="1.0"/>
+  <PARAM id="auto_gain" value="1.0"/>
+  <PARAM id="bypass" value="0.0"/>
+  <PARAM id="direct_drive" value="30.80000114440918"/>
+  <PARAM id="direct_eq_b1_freq" value="249.9999542236328"/>
+  <PARAM id="direct_eq_b1_gain" value="2.682209014892578e-7"/>
+  <PARAM id="direct_eq_b1_q" value="0.6999999284744263"/>
+  <PARAM id="direct_eq_b2_freq" value="5209.6396484375"/>
+  <PARAM id="direct_eq_b2_gain" value="10.60000038146973"/>
+  <PARAM id="direct_eq_b2_q" value="0.6999999284744263"/>
+  <PARAM id="direct_eq_hs_freq" value="8000.0"/>
+  <PARAM id="direct_eq_hs_gain" value="7.700000286102295"/>
+  <PARAM id="direct_eq_ls_freq" value="99.99999237060547"/>
+  <PARAM id="direct_eq_ls_gain" value="2.682209014892578e-7"/>
+  <PARAM id="direct_length" value="17.30000114440918"/>
+  <PARAM id="direct_level" value="2.600000858306885"/>
+  <PARAM id="mix" value="100.0"/>
+  <PARAM id="mono" value="0.0"/>
+  <PARAM id="out_trim" value="1.788139343261719e-7"/>
+  <PARAM id="room_drive" value="0.0"/>
+  <PARAM id="room_eq_b1_freq" value="249.9999542236328"/>
+  <PARAM id="room_eq_b1_gain" value="2.682209014892578e-7"/>
+  <PARAM id="room_eq_b1_q" value="0.6999999284744263"/>
+  <PARAM id="room_eq_b2_freq" value="2500.00048828125"/>
+  <PARAM id="room_eq_b2_gain" value="2.682209014892578e-7"/>
+  <PARAM id="room_eq_b2_q" value="0.6999999284744263"/>
+  <PARAM id="room_eq_hs_freq" value="8000.0"/>
+  <PARAM id="room_eq_hs_gain" value="5.800000190734863"/>
+  <PARAM id="room_eq_ls_freq" value="99.99999237060547"/>
+  <PARAM id="room_eq_ls_gain" value="2.682209014892578e-7"/>
+  <PARAM id="room_level" value="-2.099999189376831"/>
+  <PARAM id="room_size" value="100.0"/>
+  <PARAM id="sel_amb" value="1.0"/>
+  <PARAM id="sel_ir" value="8.0"/>
+  <PARAM id="sel_room" value="1.0"/>
+  <PARAM id="sel_space" value="1.0"/>
+</SpacesState>
