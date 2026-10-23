@@ -42,6 +42,7 @@ public:
 
 private:
     void step (int delta);
+    bool loadStateFile (const juce::File&);
 
     SpacesProcessor& processor;
     juce::Array<Entry> entries;

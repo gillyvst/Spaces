@@ -419,10 +419,12 @@ LayerEqStrip::LayerEqStrip (AudioProcessorValueTreeState& state, const LayerPara
     add (ids.b1Freq(), "Freq");  add (ids.b1Gain(), "Gain");  add (ids.b1Q(), "Q");
     add (ids.b2Freq(), "Freq");  add (ids.b2Gain(), "Gain");  add (ids.b2Q(), "Q");
     add (ids.hsFreq(), "Freq");  add (ids.hsGain(), "Gain");
+    add (ids.pan(), "Pan");
 }
 
-static const int eqGroupSizes[] { 2, 3, 3, 2 };
-static const char* const eqGroupNames[] { "Low Shelf", "Bell 1", "Bell 2", "High Shelf" };
+static const int eqGroupSizes[] { 2, 3, 3, 2, 1 };
+static const char* const eqGroupNames[] { "Low Shelf", "Bell 1", "Bell 2", "High Shelf", "Balance" };
+static constexpr int eqGroups = 5, eqKnobs = 11;
 
 void LayerEqStrip::resized()
 {
@@ -432,7 +434,7 @@ void LayerEqStrip::resized()
     area = area.withSizeKeepingCentre (area.getWidth(), jmin (area.getHeight(), 96));
 
     const auto gap = 18;
-    const auto knobWidth = (area.getWidth() - gap * 3) / 10;
+    const auto knobWidth = (area.getWidth() - gap * (eqGroups - 1)) / eqKnobs;
     int k = 0;
 
     for (auto groupSize : eqGroupSizes)
@@ -452,9 +454,9 @@ void LayerEqStrip::paint (Graphics& g)
     area.removeFromLeft (6.0f);
 
     const auto gap = 18.0f;
-    const auto knobWidth = (area.getWidth() - gap * 3.0f) / 10.0f;
+    const auto knobWidth = (area.getWidth() - gap * (float) (eqGroups - 1)) / (float) eqKnobs;
 
-    for (int i = 0; i < 4; ++i)
+    for (int i = 0; i < eqGroups; ++i)
     {
         const auto width = knobWidth * (float) eqGroupSizes[i];
         auto group = area.removeFromLeft (width);

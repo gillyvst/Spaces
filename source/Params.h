@@ -42,6 +42,7 @@ struct LayerParamIDs
     juce::String length() const { return id ("length"); }   // direct layer only
     juce::String size()   const { return id ("size"); }     // room layer only
     juce::String drive()  const { return id ("drive"); }
+    juce::String pan()    const { return id ("pan"); }
 
     juce::String lsFreq() const { return id ("eq_ls_freq"); }
     juce::String lsGain() const { return id ("eq_ls_gain"); }

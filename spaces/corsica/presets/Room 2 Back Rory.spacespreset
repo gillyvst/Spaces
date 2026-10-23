@@ -4,7 +4,7 @@
              preset="Room 2 Back Rory" version="0.1.0">
   <PARAM id="amb_level" value="-40.70000076293945"/>
   <PARAM id="amb_on" value="1.0"/>
-  <PARAM id="auto_gain" value="1.0"/>
+  <PARAM id="auto_gain" value="0.0"/>
   <PARAM id="bypass" value="0.0"/>
   <PARAM id="direct_drive" value="0.0"/>
   <PARAM id="direct_eq_b1_freq" value="249.9999542236328"/>

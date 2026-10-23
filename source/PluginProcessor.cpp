@@ -117,11 +117,9 @@ private:
 
                 if (roomDirty)
                 {
-                    const auto fraction = jlimit (0.25f, 1.0f, r.roomSizePct / 100.0f);
-                    const auto full = source.fromLeft.getNumSamples();
-                    const auto length = jmax (1, (int) std::round (full * fraction));
-                    const auto fade = fraction >= 0.999f ? msToSamples (5.0f) : length / 4;
-                    set->room = slice (length, fade);
+                    const auto factor = jlimit (0.25f, 3.0f, r.roomSizePct / 100.0f);
+                    set->room = std::abs (factor - 1.0f) < 0.005f ? slice (source.fromLeft.getNumSamples(), msToSamples (5.0f))
+                                                                  : reshapeDecay (factor, builtKey.hashCode());
                     set->hasRoom = true;
                     builtSize = r.roomSizePct;
                 }
@@ -194,6 +192,155 @@ private:
                 }
             }
         }
+
+        return ir;
+    }
+
+    // Room Size: scales the room's decay time (RT60) by `factor`, keeping the
+    // direct sound and the first 50 ms of reflections as recorded.
+    //
+    // Below 1 the tail is made to die away faster. Above 1 it is made to die
+    // away slower; the recordings are only ~1 s long, so past the point where
+    // the real tail is still well above the noise floor, the tail is
+    // continued with grains taken from its own late part (same tone and
+    // density, decorrelated per path), with the highs damped progressively
+    // as they would be in a bigger room.
+    LayerIR reshapeDecay (float factor, int seed) const
+    {
+        const auto sr = source.sampleRate;
+        const auto length = source.fromLeft.getNumSamples();
+        std::array<const AudioBuffer<float>*, 2> srcs { &source.fromLeft, &source.fromRight };
+
+        // Broadband energy over all four paths, and its backwards (Schroeder) integral.
+        std::vector<double> energy ((size_t) length, 0.0), schroeder ((size_t) length + 1, 0.0);
+
+        for (auto* b : srcs)
+            for (int ch = 0; ch < 2; ++ch)
+                for (int i = 0; i < length; ++i)
+                    energy[(size_t) i] += (double) b->getSample (ch, i) * b->getSample (ch, i);
+
+        for (int i = length - 1; i >= 0; --i)
+            schroeder[(size_t) i] = schroeder[(size_t) i + 1] + energy[(size_t) i];
+
+        const auto total = jmax (1.0e-20, schroeder[0]);
+        const auto decayDb = [&] (int i) { return 10.0 * std::log10 (schroeder[(size_t) i] / total + 1.0e-30); };
+        const auto firstBelow = [&] (double db)
+        {
+            for (int i = 0; i < length; ++i)
+                if (decayDb (i) < db)
+                    return i;
+            return length;
+        };
+
+        const auto peak = *std::max_element (energy.begin(), energy.end());
+        int onset = 0;
+        while (onset < length - 1 && energy[(size_t) onset] < peak * 0.01)
+            ++onset;
+
+        const auto mixing = jmin (length - 1, onset + (int) (0.05 * sr));
+        const auto t5 = firstBelow (-5.0), t35 = firstBelow (-35.0);
+        const double rt60 = t35 > t5 && t35 < length ? 2.0 * (t35 - t5) : 0.5 * sr;   // in samples
+        const double newRt60 = rt60 * factor;
+
+        // The recorded tail is trusted down to -55 dB.
+        const auto reliableEnd = jmax (mixing + 1, jmin (length - (int) (0.02 * sr), firstBelow (-55.0)));
+
+        const auto outLength = factor < 1.0f ? jmin (length, mixing + (int) (newRt60 * 1.2))
+                                             : jmin ((int) (6.0 * sr), mixing + (int) (newRt60 * 1.2));
+
+        // Amplitude decays as 10^(-3 t / RT60): flatten with the original
+        // rate, re-apply with the new one.
+        const auto flatten = [&] (int i) { return std::pow (10.0, 3.0 * (i - mixing) / rt60); };
+        const auto redecay = [&] (int i) { return std::pow (10.0, -3.0 * (i - mixing) / newRt60); };
+
+        LayerIR ir;
+        ir.sampleRate = sr;
+        ir.fromLeft.setSize (2, outLength);
+        ir.fromRight.setSize (2, outLength);
+        ir.fromLeft.clear();
+        ir.fromRight.clear();
+
+        Random random (seed);
+        constexpr int grain = 2048;
+        const auto crossfade = jmax (1, (int) (0.1 * sr));
+        const auto grainSourceStart = mixing + (reliableEnd - mixing) / 2;
+        const auto grainSourceRange = jmax (1, reliableEnd - grain - grainSourceStart);
+        std::vector<float> texture ((size_t) jmax (0, outLength - reliableEnd + crossfade + grain), 0.0f);
+        std::array<float, grain> window;
+
+        for (int i = 0; i < grain; ++i)
+            window[(size_t) i] = 0.5f - 0.5f * std::cos (MathConstants<float>::twoPi * (float) i / grain);
+
+        for (int b = 0; b < 2; ++b)
+        {
+            auto& dest = b == 0 ? ir.fromLeft : ir.fromRight;
+
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                const auto* in = srcs[(size_t) b]->getReadPointer (ch);
+                auto* out = dest.getWritePointer (ch);
+
+                for (int i = 0; i < jmin (mixing, outLength); ++i)
+                    out[i] = in[i];
+
+                const auto realEnd = factor < 1.0f ? outLength : jmin (outLength, reliableEnd);
+
+                for (int i = mixing; i < realEnd; ++i)
+                    out[i] = (float) (in[i] * flatten (i) * redecay (i));
+
+                if (factor <= 1.0f || outLength <= reliableEnd - crossfade || reliableEnd - grain <= grainSourceStart)
+                    continue;
+
+                // Texture: overlap-added Hann grains of the flattened late tail.
+                std::fill (texture.begin(), texture.end(), 0.0f);
+                const auto textureStart = reliableEnd - crossfade;
+
+                for (int pos = 0; pos < (int) texture.size() - grain; pos += grain / 2)
+                {
+                    const auto from = grainSourceStart + random.nextInt (grainSourceRange);
+
+                    for (int k = 0; k < grain; ++k)
+                        texture[(size_t) (pos + k)] += window[(size_t) k] * (float) (in[from + k] * flatten (from + k));
+                }
+
+                // Uncorrelated grains at 50% overlap sum to ~0.75 of the power.
+                const auto norm = 1.0f / std::sqrt (0.75f);
+                float lowpass = 0.0f;
+
+                for (int i = textureStart; i < outLength; ++i)
+                {
+                    const auto t = (float) (i - textureStart) / (float) jmax (1, outLength - textureStart);
+                    const auto cutoff = 16000.0f * std::pow (4000.0f / 16000.0f, t);
+                    const auto a = 1.0f - std::exp (-MathConstants<float>::twoPi * cutoff / (float) sr);
+                    lowpass += a * (texture[(size_t) (i - textureStart)] * norm - lowpass);
+
+                    const auto synth = (float) (lowpass * redecay (i));
+
+                    if (i < reliableEnd)
+                    {
+                        // Equal-power crossfade from the real tail into the texture.
+                        const auto x = (float) (i - textureStart) / (float) crossfade;
+                        out[i] = out[i] * std::cos (x * MathConstants<float>::halfPi) + synth * std::sin (x * MathConstants<float>::halfPi);
+                    }
+                    else
+                    {
+                        out[i] = synth;
+                    }
+                }
+            }
+        }
+
+        // Gentle fade over the last 10% so nothing is cut off.
+        const auto fade = jmax (1, outLength / 10);
+
+        for (auto* b : { &ir.fromLeft, &ir.fromRight })
+            for (int ch = 0; ch < 2; ++ch)
+            {
+                auto* data = b->getWritePointer (ch);
+
+                for (int i = 0; i < fade; ++i)
+                    data[outLength - fade + i] *= 0.5f * (1.0f + std::cos (MathConstants<float>::pi * (float) (i + 1) / (float) fade));
+            }
 
         return ir;
     }
@@ -401,6 +548,11 @@ AudioProcessorValueTreeState::ParameterLayout SpacesProcessor::createLayout (con
                                                               .withLabel ("%");
     const auto msAttributes = AudioParameterFloatAttributes().withStringFromValueFunction ([] (float v, int) { return String (v, v < 10.0f ? 1 : 0) + " ms"; })
                                                              .withLabel ("ms");
+    const auto panAttributes = AudioParameterFloatAttributes().withStringFromValueFunction ([] (float v, int)
+    {
+        const auto amount = roundToInt (std::abs (v));
+        return amount == 0 ? String ("C") : (v < 0.0f ? "L " : "R ") + String (amount);
+    });
     const auto qAttributes = AudioParameterFloatAttributes().withStringFromValueFunction ([] (float v, int) { return String (v, 2); });
 
     const auto addFloat = [&] (const String& id, const String& name, NormalisableRange<float> range, float def,
@@ -432,9 +584,10 @@ AudioProcessorValueTreeState::ParameterLayout SpacesProcessor::createLayout (con
         if (isDirect)
             addFloat (layer->length(), n + "Length", skewed (2.0f, 100.0f, 15.0f, 0.1f), 10.0f, msAttributes);
         else
-            addFloat (layer->size(), n + "Size", { 25.0f, 100.0f, 0.1f }, 100.0f, pctAttributes);
+            addFloat (layer->size(), n + "Size", skewed (25.0f, 300.0f, 100.0f, 0.1f), 100.0f, pctAttributes);
 
         addFloat (layer->drive(),  n + "Drive",          { 0.0f, 100.0f, 0.1f }, 0.0f, pctAttributes);
+        addFloat (layer->pan(),    n + "Pan",            { -100.0f, 100.0f, 0.1f }, 0.0f, panAttributes);
         addFloat (layer->lsFreq(), n + "Low Shelf Freq", skewed (20.0f, 1000.0f, 140.0f), 100.0f, hzAttributes);
         addFloat (layer->lsGain(), n + "Low Shelf Gain", { -18.0f, 18.0f, 0.1f }, 0.0f, dbAttributes);
         addFloat (layer->b1Freq(), n + "Bell 1 Freq",    skewed (20.0f, 20000.0f, 630.0f), 250.0f, hzAttributes);
@@ -497,6 +650,7 @@ SpacesProcessor::SpacesProcessor()
         params->level  = raw (ids->level());
         params->shape  = raw (ids == &directIDs ? ids->length() : ids->size());
         params->drive  = raw (ids->drive());
+        params->pan    = raw (ids->pan());
         params->lsFreq = raw (ids->lsFreq());
         params->lsGain = raw (ids->lsGain());
         params->b1Freq = raw (ids->b1Freq());
@@ -524,10 +678,10 @@ SpacesProcessor::SpacesProcessor()
                                 readParamIndex (ParamIDs::ir),    readParamIndex (ParamIDs::ambience) });
     presets.refresh();
 
-    // A fresh instance starts out identical to the first factory preset
-    // (the space's defaults), so show that name rather than "Init".
+    // A fresh instance starts on the first factory preset. (A host restoring
+    // a session replaces this straight after.)
     if (! presets.getEntries().isEmpty())
-        presets.setCurrentByName (presets.getEntries().getFirst().name);
+        presets.load (0);
 
     timerCallback();
     startTimerHz (30);
@@ -614,6 +768,7 @@ void SpacesProcessor::updateDspTargets() noexcept
     {
         layer->setLevel (levelDbToGain (params->level->load()));
         layer->setDrive (params->drive->load() * 0.01f);
+        layer->setPan (params->pan->load() * 0.01f);
 
         LayerEQ::Settings eq;
         eq.lsFreq = params->lsFreq->load();  eq.lsGain = params->lsGain->load();
@@ -844,14 +999,20 @@ void SpacesProcessor::stepAmbience (int delta)
 
 void SpacesProcessor::applySelection (const Selection& s)
 {
-    suppressRoomDefaultsUntil = Time::getMillisecondCounter() + 500;
+    const auto onMessageThread = MessageManager::getInstance()->isThisTheMessageThread();
+
+    // Off the message thread the 30 Hz poll will see the room change later;
+    // tell it not to treat it as a user room switch.
+    if (! onMessageThread)
+        suppressRoomDefaultsUntil = Time::getMillisecondCounter() + 500;
+
     const auto c = clampSelection (s);
     setParamIndex (ParamIDs::space, c.space);
     setParamIndex (ParamIDs::room, c.room);
     setParamIndex (ParamIDs::ir, c.ir);
     setParamIndex (ParamIDs::ambience, jmax (0, c.ambience));
 
-    if (MessageManager::getInstance()->isThisTheMessageThread())
+    if (onMessageThread)
     {
         applied = c;   // so the poll below doesn't treat it as a room change
         timerCallback();
@@ -914,8 +1075,29 @@ void SpacesProcessor::restoreStateTree (const ValueTree& tree)
     if (! tree.hasType (apvts.state.getType()))
         return;
 
-    suppressRoomDefaultsUntil = Time::getMillisecondCounter() + 500;
-    apvts.replaceState (tree.createCopy());
+    if (! MessageManager::getInstance()->isThisTheMessageThread())
+        suppressRoomDefaultsUntil = Time::getMillisecondCounter() + 500;
+
+    // States saved by older versions don't have newer parameters (e.g. Pan).
+    // Give those their defaults, otherwise they'd keep whatever value the
+    // previous preset left behind.
+    auto copy = tree.createCopy();
+
+    for (auto* p : getParameters())
+    {
+        if (auto* ranged = dynamic_cast<RangedAudioParameter*> (p))
+        {
+            if (! copy.getChildWithProperty ("id", ranged->paramID).isValid())
+            {
+                ValueTree child ("PARAM");
+                child.setProperty ("id", ranged->paramID, nullptr);
+                child.setProperty ("value", ranged->convertFrom0to1 (ranged->getDefaultValue()), nullptr);
+                copy.appendChild (child, nullptr);
+            }
+        }
+    }
+
+    apvts.replaceState (copy);
 
     // Resolve the saved IDs back to indices.
     Selection s { readParamIndex (ParamIDs::space), readParamIndex (ParamIDs::room),

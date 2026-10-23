@@ -150,8 +150,12 @@ String SpacePack::load (const File& manifest, SpacePack& pack)
             preset.irId       = p["ir"].toString();
             preset.ambienceId = p["ambience"].toString();
             preset.params     = readNumberMap (p["params"]);
+            preset.file       = file (p["file"]);
+            preset.hidden     = (bool) p["hidden"];
 
-            if (preset.name.isNotEmpty() && pack.indexOfRoom (preset.roomId) >= 0)
+            if (preset.file != File() && ! preset.file.existsAsFile())
+                problems.add ("missing preset file " + p["file"].toString());
+            else if (preset.name.isNotEmpty() && (preset.file.existsAsFile() || pack.indexOfRoom (preset.roomId) >= 0))
                 pack.presets.add (preset);
         }
     }

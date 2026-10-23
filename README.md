@@ -37,6 +37,8 @@ Stereo in ─┬─────────────────────�
 * **Click-free switching.** A new IR is built on a background thread. It then runs silently on the live input for 100 ms, so its reverb has the right "history", and crossfades in over 100 ms. This is a small change to a local copy of `juce::dsp::Convolution` (`source/dsp/WarmConvolution.*`). Stock JUCE fades in a cold engine, which gives a faint tick on steady material.
 * **Level calibration.** Each IR is calibrated so its response to centred, K-weighted pink noise matches the input. Switching rooms or IRs therefore stays roughly level before the slow auto gain has done anything. With the default levels, the remaining correction on the Corsica IRs is within −1.2 to +3.4 dB.
 * **Auto gain** measures K-weighted loudness of the input and the wet signal over a 3 s window. It eases the difference in with a 1.5 s time constant, limited to ±18 dB, and freezes below −50 dBFS input. The ambience is never measured.
+* **Room Size** scales the room's decay time (RT60) from 25% to 300%, keeping the direct sound and first 50 ms of reflections as recorded. Above 100%, once the recorded tail gets close to the noise floor, it is continued with grains taken from its own late part, decorrelated per path, with the highs damped progressively. The recordings are only about 1 s long, so this is what lets the room ring longer.
+* **Pan** (in the EQ drawer, per layer) is a balance control for IRs that lean to one side: it turns the opposite side down and leaves centre at unity.
 * **Ambience** runs from the plugin's own sample counter, not the host transport. It's loaded into memory and resampled to the session rate (with a band-limited, loop-aware resampler, so the loop stays seamless), then shared between instances. It's added after dry/wet and mono, so it stays stereo and unaffected by both.
 
 ## Ambience with the transport stopped
@@ -136,8 +138,12 @@ The manifest looks like this:
     }
   ],
   "presets": [
+    // a full state saved from the plugin (Save as... in the preset menu)
+    { "name": "Room 1 Back", "file": "presets/Room 1 Back.spacespreset" },
+    // or a room/IR/ambience choice on top of the defaults
     { "name": "Room 1 Dancefloor", "room": "room1", "ir": "middle-ortf", "ambience": "booth",
-      "params": { "direct_length": 20.0 } }
+      "params": { "direct_length": 20.0 },
+      "hidden": true }                   // kept in the manifest, not shown in the list
   ]
 }
 ```
@@ -146,6 +152,7 @@ Notes:
 
 * IRs and loops can be WAV, AIFF or FLAC, at any sample rate.
 * Ambience files must already be perfect loops. If the last frame repeats the first, it's dropped automatically.
+* To turn your own presets into factory presets, copy the `.spacespreset` files from `~/Music/Spaces/Presets` into the pack's `presets/` folder and list them in the manifest. The first visible preset is what a new instance starts on.
 * Parameter IDs are listed in `source/Params.h`. Never rename them, because sessions and presets store them.
 * Sessions store the selection by `id` as well as by index, so you can add or reorder IRs without breaking saved sessions.
 

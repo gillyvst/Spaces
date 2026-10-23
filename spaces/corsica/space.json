@@ -99,16 +99,21 @@
   ],
 
   "presets": [
-    { "name": "Room 1 Dancefloor", "room": "room1", "ir": "middle-ortf",    "ambience": "booth" },
-    { "name": "Room 1 Front",      "room": "room1", "ir": "front-ortf",     "ambience": "booth" },
-    { "name": "Room 1 Back",       "room": "room1", "ir": "back-ortf",      "ambience": "booth" },
-    { "name": "Room 1 DJ Booth",   "room": "room1", "ir": "booth-binaural", "ambience": "booth" },
-    { "name": "Room 1 iPhone",     "room": "room1", "ir": "iphone-middle",  "ambience": "booth",
+    { "name": "Room 1 Back",        "file": "presets/Room 1 Back ORTF Rory.spacespreset" },
+    { "name": "Room 1 DJ Booth",    "file": "presets/Room 1 DJ Booth Rory.spacespreset" },
+    { "name": "Room 1 iPhone",      "file": "presets/Room 1 Iphone Rory.spacespreset" },
+    { "name": "Room 2 Middle",      "file": "presets/Room 2 Middle ORTF Rory.spacespreset" },
+    { "name": "Room 2 Back",        "file": "presets/Room 2 Back Rory.spacespreset" },
+    { "name": "Room 1 Dancefloor", "room": "room1", "ir": "middle-ortf",    "ambience": "booth", "hidden": true },
+    { "name": "Room 1 Front",      "room": "room1", "ir": "front-ortf",     "ambience": "booth", "hidden": true },
+    { "name": "Room 1 Back",       "room": "room1", "ir": "back-ortf",      "ambience": "booth", "hidden": true },
+    { "name": "Room 1 DJ Booth",   "room": "room1", "ir": "booth-binaural", "ambience": "booth", "hidden": true },
+    { "name": "Room 1 iPhone",     "room": "room1", "ir": "iphone-middle",  "ambience": "booth", "hidden": true,
       "params": { "direct_length": 20.0 } },
-    { "name": "Room 2 Dancefloor", "room": "room2", "ir": "middle-ortf",    "ambience": "back" },
-    { "name": "Room 2 Front",      "room": "room2", "ir": "front-ortf",     "ambience": "back" },
-    { "name": "Room 2 DJ Booth",   "room": "room2", "ir": "booth-ortf",     "ambience": "back" },
-    { "name": "Room 2 iPhone",     "room": "room2", "ir": "iphone-front",   "ambience": "back",
+    { "name": "Room 2 Dancefloor", "room": "room2", "ir": "middle-ortf",    "ambience": "back", "hidden": true },
+    { "name": "Room 2 Front",      "room": "room2", "ir": "front-ortf",     "ambience": "back", "hidden": true },
+    { "name": "Room 2 DJ Booth",   "room": "room2", "ir": "booth-ortf",     "ambience": "back", "hidden": true },
+    { "name": "Room 2 iPhone",     "room": "room2", "ir": "iphone-front",   "ambience": "back", "hidden": true,
       "params": { "direct_length": 20.0 } }
   ]
 }

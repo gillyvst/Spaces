@@ -1,24 +1,24 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<SpacesState spaceId="corsica" roomId="room1" irId="iphone-middle" ambienceId="booth"
-             preset="Room 1 Iphone Rory" version="0.1.0">
-  <PARAM id="amb_level" value="-34.90000152587891"/>
+<SpacesState spaceId="corsica" roomId="room2" irId="middle-ortf" ambienceId="back"
+             preset="Room 2 Middle ORTF Rory" version="0.1.0">
+  <PARAM id="amb_level" value="-35.59999847412109"/>
   <PARAM id="amb_on" value="1.0"/>
-  <PARAM id="auto_gain" value="1.0"/>
+  <PARAM id="auto_gain" value="0.0"/>
   <PARAM id="bypass" value="0.0"/>
-  <PARAM id="direct_drive" value="98.80000305175781"/>
+  <PARAM id="direct_drive" value="72.40000152587891"/>
   <PARAM id="direct_eq_b1_freq" value="249.9999542236328"/>
   <PARAM id="direct_eq_b1_gain" value="2.682209014892578e-7"/>
   <PARAM id="direct_eq_b1_q" value="0.6999999284744263"/>
-  <PARAM id="direct_eq_b2_freq" value="5209.6396484375"/>
+  <PARAM id="direct_eq_b2_freq" value="2500.00048828125"/>
   <PARAM id="direct_eq_b2_gain" value="2.682209014892578e-7"/>
   <PARAM id="direct_eq_b2_q" value="0.6999999284744263"/>
   <PARAM id="direct_eq_hs_freq" value="8000.0"/>
   <PARAM id="direct_eq_hs_gain" value="2.682209014892578e-7"/>
   <PARAM id="direct_eq_ls_freq" value="99.99999237060547"/>
   <PARAM id="direct_eq_ls_gain" value="2.682209014892578e-7"/>
-  <PARAM id="direct_length" value="8.90000057220459"/>
-  <PARAM id="direct_level" value="-0.09999910742044449"/>
+  <PARAM id="direct_length" value="17.30000114440918"/>
+  <PARAM id="direct_level" value="-3.299999237060547"/>
   <PARAM id="mix" value="100.0"/>
   <PARAM id="mono" value="0.0"/>
   <PARAM id="out_trim" value="1.788139343261719e-7"/>
@@ -33,10 +33,10 @@
   <PARAM id="room_eq_hs_gain" value="2.682209014892578e-7"/>
   <PARAM id="room_eq_ls_freq" value="99.99999237060547"/>
   <PARAM id="room_eq_ls_gain" value="2.682209014892578e-7"/>
-  <PARAM id="room_level" value="0.4000009000301361"/>
+  <PARAM id="room_level" value="-0.6999990940093994"/>
   <PARAM id="room_size" value="100.0"/>
   <PARAM id="sel_amb" value="1.0"/>
-  <PARAM id="sel_ir" value="11.0"/>
-  <PARAM id="sel_room" value="1.0"/>
+  <PARAM id="sel_ir" value="4.0"/>
+  <PARAM id="sel_room" value="2.0"/>
   <PARAM id="sel_space" value="1.0"/>
 </SpacesState>

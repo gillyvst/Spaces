@@ -21,6 +21,9 @@ void PresetManager::refresh()
 
         for (int i = 0; i < pack.presets.size(); ++i)
         {
+            if (pack.presets.getReference (i).hidden)
+                continue;
+
             Entry e;
             e.name = pack.presets.getReference (i).name;
             e.isFactory = true;
@@ -81,44 +84,59 @@ void PresetManager::load (int index)
 
         const auto& preset = pack->presets.getReference (entry.packPreset);
 
-        processor.resetParametersToDefaults (pack);
+        if (preset.file.existsAsFile())
+        {
+            if (! loadStateFile (preset.file))
+                return;
+        }
+        else
+        {
+            processor.resetParametersToDefaults (pack);
+
+            Selection s;
+            s.space = entry.pack;
+            s.room = jmax (0, pack->indexOfRoom (preset.roomId));
+            const auto& room = pack->rooms.getReference (s.room);
+            s.ir = room.indexOfIr (preset.irId);
+            s.ambience = room.indexOfAmbience (preset.ambienceId);
+
+            if (s.ir < 0)       s.ir = room.defaultIr;
+            if (s.ambience < 0) s.ambience = room.defaultAmbience;
+
+            processor.applySelection (s);
+        }
 
         for (auto& p : preset.params)
             if (auto* param = state.getParameter (p.name.toString()))
                 param->setValueNotifyingHost (param->convertTo0to1 ((float) (double) p.value));
-
-        Selection s;
-        s.space = entry.pack;
-        s.room = jmax (0, pack->indexOfRoom (preset.roomId));
-        const auto& room = pack->rooms.getReference (s.room);
-        s.ir = room.indexOfIr (preset.irId);
-        s.ambience = room.indexOfAmbience (preset.ambienceId);
-
-        if (s.ir < 0)       s.ir = room.defaultIr;
-        if (s.ambience < 0) s.ambience = room.defaultAmbience;
-
-        processor.applySelection (s);
     }
-    else
+    else if (! loadStateFile (entry.file))
     {
-        auto xml = parseXML (entry.file);
-
-        if (xml == nullptr)
-            return;
-
-        // A preset never switches the plugin's bypass.
-        auto* bypassParam = state.getParameter (ParamIDs::bypass);
-        const auto bypassValue = bypassParam->getValue();
-
-        processor.restoreStateTree (ValueTree::fromXml (*xml));
-
-        if (bypassParam->getValue() != bypassValue)
-            bypassParam->setValueNotifyingHost (bypassValue);
+        return;
     }
 
     currentIndex = index;
     currentName = entry.name;
     sendChangeMessage();
+}
+
+bool PresetManager::loadStateFile (const File& file)
+{
+    auto xml = parseXML (file);
+
+    if (xml == nullptr)
+        return false;
+
+    // A preset never switches the plugin's bypass.
+    auto* bypassParam = processor.getState().getParameter (ParamIDs::bypass);
+    const auto bypassValue = bypassParam->getValue();
+
+    processor.restoreStateTree (ValueTree::fromXml (*xml));
+
+    if (bypassParam->getValue() != bypassValue)
+        bypassParam->setValueNotifyingHost (bypassValue);
+
+    return true;
 }
 
 void PresetManager::step (int delta)

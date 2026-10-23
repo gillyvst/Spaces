@@ -127,5 +127,5 @@ public:
 
 private:
     juce::String title;
-    juce::OwnedArray<Knob> knobs;   // LS f/g, B1 f/g/q, B2 f/g/q, HS f/g
+    juce::OwnedArray<Knob> knobs;   // LS f/g, B1 f/g/q, B2 f/g/q, HS f/g, Pan
 };

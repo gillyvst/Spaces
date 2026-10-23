@@ -144,7 +144,7 @@ private:
 
     struct LayerParams
     {
-        std::atomic<float>* level, *shape, *drive;
+        std::atomic<float>* level, *shape, *drive, *pan;
         std::atomic<float>* lsFreq, *lsGain, *b1Freq, *b1Gain, *b1Q, *b2Freq, *b2Gain, *b2Q, *hsFreq, *hsGain;
     };
 

@@ -43,10 +43,16 @@ struct RoomDef
     int indexOfAmbience (const juce::String& ambId) const;
 };
 
+// A factory preset is either a full saved state ("file", a .spacespreset
+// saved from the plugin) or a room/IR/ambience choice on top of the defaults.
+// "params" are applied last in both cases. Hidden presets stay in the
+// manifest but don't appear in the list.
 struct PackPreset
 {
     juce::String name, roomId, irId, ambienceId;
+    juce::File file;
     juce::NamedValueSet params;   // param ID -> value in real units
+    bool hidden = false;
 };
 
 struct SpacePack

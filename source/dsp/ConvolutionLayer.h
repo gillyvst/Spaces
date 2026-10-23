@@ -12,7 +12,7 @@ struct LayerIR
     double sampleRate = 44100.0;
 };
 
-// One convolution layer: true-stereo convolution -> drive -> EQ -> level.
+// One convolution layer: true-stereo convolution -> drive -> EQ -> pan -> level.
 //
 // The convolver, given a stereo IR, convolves channel n with IR channel
 // n, so each input side is duplicated into a stereo buffer and run through
@@ -37,8 +37,11 @@ public:
         scratchRight.setSize (2, maxBlockSize, false, false, true);
         saturator.prepare (sampleRate, maxBlockSize);
         eq.prepare (sampleRate);
-        level.reset (sampleRate, 0.05);
-        level.setCurrentAndTargetValue (level.getTargetValue());
+        for (auto* s : { &level, &panLeft, &panRight })
+        {
+            s->reset (sampleRate, 0.05);
+            s->setCurrentAndTargetValue (s->getTargetValue());
+        }
         // prepare() rebuilds the engines from the last IR synchronously, so a
         // layer that already had an IR stays live.
         readyGate.reset (sampleRate, 0.05);
@@ -64,6 +67,15 @@ public:
     }
 
     void setLevel (float gain) noexcept          { level.setTargetValue (gain); }
+
+    // Balance, -1 (left) .. +1 (right): turns the opposite side down
+    // (equal-power curve) and leaves the near side alone, so centre is unity.
+    void setPan (float pan) noexcept
+    {
+        pan = juce::jlimit (-1.0f, 1.0f, pan);
+        panLeft.setTargetValue (pan > 0.0f ? std::cos (pan * juce::MathConstants<float>::halfPi) : 1.0f);
+        panRight.setTargetValue (pan < 0.0f ? std::cos (-pan * juce::MathConstants<float>::halfPi) : 1.0f);
+    }
     void setDrive (float amount01) noexcept      { saturator.setDrive (amount01); }
     void setEQ (const LayerEQ::Settings& s)      { eq.setTargets (s); }
 
@@ -93,8 +105,8 @@ public:
         for (int i = 0; i < numSamples; ++i)
         {
             const auto g = level.getNextValue() * readyGate.getNextValue();
-            wet.addSample (0, i, scratchLeft.getSample (0, i) * g);
-            wet.addSample (1, i, scratchLeft.getSample (1, i) * g);
+            wet.addSample (0, i, scratchLeft.getSample (0, i) * g * panLeft.getNextValue());
+            wet.addSample (1, i, scratchLeft.getSample (1, i) * g * panRight.getNextValue());
         }
     }
 
@@ -126,7 +138,7 @@ private:
     juce::AudioBuffer<float> scratchLeft, scratchRight;
     Saturator saturator;
     LayerEQ eq;
-    juce::SmoothedValue<float> level, readyGate;
+    juce::SmoothedValue<float> level, readyGate, panLeft { 1.0f }, panRight { 1.0f };
     double sampleRate = 44100.0;
     int samplesSinceLoad = 0;
     bool hasIR = false;

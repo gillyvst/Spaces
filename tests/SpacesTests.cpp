@@ -147,9 +147,19 @@ struct Harness
     AudioBuffer<float> buffer;
     MidiBuffer midi;
 
-    Harness (double sr = 48000.0, int block = 512) : sampleRate (sr), blockSize (block)
+    // By default the processor is reset to plain defaults (a fresh instance
+    // otherwise starts on the first factory preset).
+    Harness (double sr = 48000.0, int block = 512, bool cleanSlate = true) : sampleRate (sr), blockSize (block)
     {
         processor = std::make_unique<SpacesProcessor>();
+
+        if (cleanSlate)
+        {
+            processor->resetParametersToDefaults (processor->getLibrary().getPack (0));
+            const auto* room = processor->getLibrary().getRoom (0, 0);
+            processor->applySelection ({ 0, 0, room->defaultIr, room->defaultAmbience });
+        }
+
         processor->setPlayConfigDetails (2, 2, sampleRate, blockSize);
         processor->prepareToPlay (sampleRate, blockSize);
         buffer.setSize (2, blockSize);
@@ -241,11 +251,26 @@ static void testLibrary()
 static void testSelectionAndState()
 {
     std::cout << "\nSelection and state" << std::endl;
+    {
+        Harness fresh (48000.0, 512, false);
+        auto& presets = fresh.processor->getPresets();
+        check (presets.getCurrentIndex() == 0 && presets.getEntries()[0].name == "Room 1 Back",
+               "a new instance starts on the first factory preset (" + presets.getCurrentName() + ")");
+        check (fresh.processor->getState().getRawParameterValue (ParamIDs::autoGain)->load() < 0.5f,
+               "factory presets have auto gain off");
+
+        StringArray names;
+        for (auto& e : presets.getEntries())
+            names.add (e.name);
+        info ("preset list: " + names.joinIntoString (", "));
+        check (names.size() == 5, "only the 5 main presets are listed");
+    }
+
     Harness h;
     auto& p = *h.processor;
 
     auto s = p.getSelection();
-    check (s.room == 0 && s.ir == p.getLibrary().getRoom (0, 0)->defaultIr, "starts on Room 1 default IR");
+    check (s.room == 0 && s.ir == p.getLibrary().getRoom (0, 0)->defaultIr, "defaults: Room 1 default IR");
 
     p.selectRoom (1);
     s = p.getSelection();
@@ -533,6 +558,51 @@ static void testAmbience()
     check (offSq < 1.0e-12, "ambience off is silent");
 }
 
+// Room Size should scale the decay time: render an impulse through the room
+// layer alone and measure RT60 from the Schroeder integral.
+static void testRoomSize()
+{
+    std::cout << "\nRoom Size (decay time)" << std::endl;
+    double rtAt100 = 0.0;
+
+    for (auto size : { 100.0f, 50.0f, 200.0f, 300.0f })
+    {
+        Harness h;
+        h.set (ParamIDs::ambOn, 0.0f);
+        h.set (ParamIDs::autoGain, 0.0f);
+        h.set (directIDs.level(), minLevelDb);
+        h.set (roomIDs.size(), size);
+        h.settle (1.0);
+        h.renderSilence (1.0);
+
+        std::vector<float> out;
+        bool first = true;
+        h.render (8.0, [&] (float& l, float& r) { l = r = first ? 1.0f : 0.0f; first = false; },
+                  [&] (float l, float r) { out.push_back (l * l + r * r); });
+
+        std::vector<double> sch (out.size() + 1, 0.0);
+        for (size_t i = out.size(); i-- > 0;)
+            sch[i] = sch[i + 1] + out[i];
+
+        const auto at = [&] (double db)
+        {
+            for (size_t i = 0; i < out.size(); ++i)
+                if (10.0 * std::log10 (sch[i] / sch[0] + 1e-30) < db)
+                    return (double) i / h.sampleRate;
+            return 0.0;
+        };
+
+        const auto rt = 2.0 * (at (-35.0) - at (-5.0));
+        info ("Size " + String ((int) size) + "%: RT60 " + String (rt, 2) + " s");
+
+        if (size == 100.0f)
+            rtAt100 = rt;
+        else if (rtAt100 > 0.0)
+            check (std::abs (rt / rtAt100 - size / 100.0) < 0.3 * size / 100.0,
+                   "Size " + String ((int) size) + "% gives " + String (rt / rtAt100, 2) + "x the natural decay");
+    }
+}
+
 static void testPerformance()
 {
     std::cout << "\nCPU" << std::endl;
@@ -587,6 +657,22 @@ static void writeWav (const File& f, const AudioBuffer<float>& b, double sr)
 static void dump (const File& folder)
 {
     folder.createDirectory();
+
+    for (auto size : { 100.0f, 300.0f })
+    {
+        Harness h;
+        h.set (ParamIDs::ambOn, 0.0f);
+        h.set (ParamIDs::autoGain, 0.0f);
+        h.set (roomIDs.size(), size);
+        h.settle (1.0);
+        h.renderSilence (1.0);
+        AudioBuffer<float> out (2, (int) (h.sampleRate * 5));
+        int n = 0;
+        bool first = true;
+        h.render (5.0, [&] (float& l, float& r) { l = r = first ? 0.5f : 0.0f; first = false; },
+                  [&] (float l, float r) { if (n < out.getNumSamples()) { out.setSample (0, n, l); out.setSample (1, n, r); ++n; } });
+        writeWav (folder.getChildFile ("impulse-size" + String ((int) size) + ".wav"), out, h.sampleRate);
+    }
 
     for (auto [name, ambienceOn, sine] : { std::tuple { "sine-wet", false, true }, std::tuple { "program-wet", false, false },
                                            std::tuple { "program-with-ambience", true, false } })
@@ -674,6 +760,7 @@ int main (int argc, char** argv)
     testClicks (quick);
     testGainMatch (quick);
     testSampleRates();
+    testRoomSize();
     testPerformance();
 
     std::cout << "\n" << (failures == 0 ? "All checks passed" : String (failures) + " check(s) FAILED") << std::endl;

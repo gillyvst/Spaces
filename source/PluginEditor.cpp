@@ -58,7 +58,7 @@ public:
         eqButton.onClick = [this] { eqDrawer.setVisible (eqButton.getToggleState()); repaint(); };
 
         directLength.slider.setTooltip ("How much of the start of the IR the Direct layer uses: the PA's tone and first arrival");
-        roomSize.slider.setTooltip ("How much of the IR's tail the Room layer uses");
+        roomSize.slider.setTooltip ("How long the room rings: 100% is the room as recorded, lower is tighter, higher is a bigger, longer space");
         autoGain.button.setTooltip ("Keeps the wet signal as loud as the input, so A/B comparisons are fair");
         mono.button.setTooltip ("Sum to mono, as on a single-speaker system (the ambience stays stereo)");
         hero.setInterceptsMouseClicks (false, false);
@@ -182,7 +182,7 @@ public:
             g.setColour (Palette::chassis);
             g.fillRect (getLocalBounds());
             SpacesLookAndFeel::drawCreamPanel (g, getLocalBounds().toFloat().reduced (4.0f));
-            SpacesLookAndFeel::drawEngravedText (g, String (CharPointer_UTF8 ("ADVANCED  \xc2\xb7  LAYER EQ")), getLocalBounds().toFloat().reduced (24.0f, 14.0f).withHeight (18.0f),
+            SpacesLookAndFeel::drawEngravedText (g, String (CharPointer_UTF8 ("ADVANCED  \xc2\xb7  LAYER EQ & BALANCE")), getLocalBounds().toFloat().reduced (24.0f, 14.0f).withHeight (18.0f),
                                                  Justification::centredLeft, SpacesLookAndFeel::font (13.0f, true, 0.24f));
             g.setColour (Palette::ink.withAlpha (0.2f));
             g.drawHorizontalLine (getHeight() / 2 + 14, 24.0f, (float) getWidth() - 24.0f);
