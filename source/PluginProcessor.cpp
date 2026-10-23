@@ -574,9 +574,14 @@ AudioProcessorValueTreeState::ParameterLayout SpacesProcessor::createLayout (con
         return r;
     };
 
+    // On/off switches are two-item choices rather than AudioParameterBool:
+    // a bool keeps whatever in-between value a host sends (say 0.82) while a
+    // choice snaps it to off or on, so what's saved and restored is exactly
+    // what the host reads back. Saved states are the same either way (0 / 1).
     const auto addBool = [&] (const String& id, const String& name, bool def)
     {
-        layout.add (std::make_unique<AudioParameterBool> (ParameterID { id, 1 }, name, packDefault (id, def ? 1.0f : 0.0f) > 0.5f));
+        layout.add (std::make_unique<AudioParameterChoice> (ParameterID { id, 1 }, name, StringArray { "Off", "On" },
+                                                            packDefault (id, def ? 1.0f : 0.0f) > 0.5f ? 1 : 0));
     };
 
     // --- Layers
@@ -615,7 +620,9 @@ AudioProcessorValueTreeState::ParameterLayout SpacesProcessor::createLayout (con
     addBool (ParamIDs::autoGain, "Auto Gain", true);
     addFloat (ParamIDs::outTrim, "Output Trim", { -12.0f, 12.0f, 0.1f }, 0.0f, dbAttributes);
     addBool (ParamIDs::mono, "Mono", false);
-    addBool (ParamIDs::bypass, "Bypass", false);
+    // Hosts map their own bypass button onto this, and the plugin wrappers
+    // expect a real AudioParameterBool for that.
+    layout.add (std::make_unique<AudioParameterBool> (ParameterID { ParamIDs::bypass, 1 }, "Bypass", false));
 
     return layout;
 }
@@ -914,6 +921,12 @@ Selection SpacesProcessor::clampSelection (Selection s) const
     return s;
 }
 
+Selection SpacesProcessor::currentParamSelection() const
+{
+    return clampSelection ({ readParamIndex (ParamIDs::space), readParamIndex (ParamIDs::room),
+                             readParamIndex (ParamIDs::ir),    readParamIndex (ParamIDs::ambience) });
+}
+
 Selection SpacesProcessor::getSelection() const { return applied; }
 
 const SpacePack* SpacesProcessor::getCurrentSpace() const { return library.getPack (applied.space); }
@@ -926,8 +939,7 @@ bool SpacesProcessor::isAmbienceAudible() const
 
 void SpacesProcessor::timerCallback()
 {
-    auto wanted = clampSelection ({ readParamIndex (ParamIDs::space), readParamIndex (ParamIDs::room),
-                                    readParamIndex (ParamIDs::ir),    readParamIndex (ParamIDs::ambience) });
+    auto wanted = currentParamSelection();
 
     applied = wanted;
 
@@ -1000,11 +1012,15 @@ void SpacesProcessor::stepAmbience (int delta)
 
 void SpacesProcessor::applySelection (const Selection& s)
 {
+    // Only touch parameters whose (clamped) meaning actually changes, so a
+    // host-set value that already means the right thing is left as it is.
     const auto c = clampSelection (s);
-    setParamIndex (ParamIDs::space, c.space);
-    setParamIndex (ParamIDs::room, c.room);
-    setParamIndex (ParamIDs::ir, c.ir);
-    setParamIndex (ParamIDs::ambience, jmax (0, c.ambience));
+    const auto now = currentParamSelection();
+
+    if (c.space != now.space)       setParamIndex (ParamIDs::space, c.space);
+    if (c.room != now.room)         setParamIndex (ParamIDs::room, c.room);
+    if (c.ir != now.ir)             setParamIndex (ParamIDs::ir, c.ir);
+    if (c.ambience != now.ambience) setParamIndex (ParamIDs::ambience, jmax (0, c.ambience));
 
     // Off the message thread (some hosts restore state there) the 30 Hz poll picks it up.
     if (MessageManager::getInstance()->isThisTheMessageThread())
@@ -1039,20 +1055,23 @@ ValueTree SpacesProcessor::createStateTree()
     auto state = apvts.copyState();
 
     // Store the selection by ID as well as by index, so sessions still open
-    // on the right room/IR if a pack's lists are reordered or extended.
-    if (auto* space = getCurrentSpace())
+    // on the right room/IR if a pack's lists are reordered or extended. (From
+    // the parameters, not the last applied selection, which can lag behind.)
+    const auto sel = currentParamSelection();
+
+    if (auto* space = library.getPack (sel.space))
     {
         state.setProperty ("spaceId", space->id, nullptr);
 
-        if (auto* r = getCurrentRoom())
+        if (auto* r = library.getRoom (sel.space, sel.room))
         {
             state.setProperty ("roomId", r->id, nullptr);
 
-            if (isPositiveAndBelow (applied.ir, r->irs.size()))
-                state.setProperty ("irId", r->irs.getReference (applied.ir).id, nullptr);
+            if (isPositiveAndBelow (sel.ir, r->irs.size()))
+                state.setProperty ("irId", r->irs.getReference (sel.ir).id, nullptr);
 
-            if (isPositiveAndBelow (applied.ambience, r->ambiences.size()))
-                state.setProperty ("ambienceId", r->ambiences.getReference (applied.ambience).id, nullptr);
+            if (isPositiveAndBelow (sel.ambience, r->ambiences.size()))
+                state.setProperty ("ambienceId", r->ambiences.getReference (sel.ambience).id, nullptr);
         }
     }
 
@@ -1093,8 +1112,7 @@ void SpacesProcessor::restoreStateTree (const ValueTree& tree)
     // or reordered): then the stored index points at a different item, and
     // the ID finds the one that was meant. Parameters are only rewritten in
     // that case, so a host always gets back exactly what it saved.
-    const auto saved = clampSelection ({ readParamIndex (ParamIDs::space), readParamIndex (ParamIDs::room),
-                                         readParamIndex (ParamIDs::ir),    readParamIndex (ParamIDs::ambience) });
+    const auto saved = currentParamSelection();
     auto wanted = saved;
 
     if (auto space = library.indexOfPack (tree["spaceId"].toString()); space >= 0)

@@ -112,6 +112,7 @@ private:
     void setParamIndex (const juce::String& id, int zeroBasedIndex);
     int readParamIndex (const char* id) const;
     Selection clampSelection (Selection) const;
+    Selection currentParamSelection() const;
 
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout (const PackLibrary&, SpacesProcessor&);
 
