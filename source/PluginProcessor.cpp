@@ -124,7 +124,13 @@ private:
                     builtSize = r.roomSizePct;
                 }
 
-                owner.irMailbox.post (std::move (set));
+                // A set the audio thread hasn't picked up yet may hold the
+                // other layer's IR: keep it.
+                owner.irMailbox.post (std::move (set), [] (IRSet& newer, IRSet& older)
+                {
+                    if (! newer.hasDirect && older.hasDirect) { newer.direct = std::move (older.direct); newer.hasDirect = true; }
+                    if (! newer.hasRoom && older.hasRoom)     { newer.room = std::move (older.room);     newer.hasRoom = true; }
+                });
             }
         }
     }
