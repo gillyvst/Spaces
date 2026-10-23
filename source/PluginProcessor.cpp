@@ -929,22 +929,6 @@ void SpacesProcessor::timerCallback()
     auto wanted = clampSelection ({ readParamIndex (ParamIDs::space), readParamIndex (ParamIDs::room),
                                     readParamIndex (ParamIDs::ir),    readParamIndex (ParamIDs::ambience) });
 
-    // A new room (chosen in the UI or by automation) starts on that room's
-    // default IR and ambience, unless the change came with its own IR, as
-    // it does from a preset or a restored session.
-    if ((wanted.space != applied.space || wanted.room != applied.room)
-        && applied.room >= 0
-        && Time::getMillisecondCounter() > suppressRoomDefaultsUntil)
-    {
-        if (auto* r = library.getRoom (wanted.space, wanted.room))
-        {
-            wanted.ir = r->defaultIr;
-            wanted.ambience = r->ambiences.isEmpty() ? -1 : r->defaultAmbience;
-            setParamIndex (ParamIDs::ir, wanted.ir);
-            setParamIndex (ParamIDs::ambience, jmax (0, wanted.ambience));
-        }
-    }
-
     applied = wanted;
 
     LoadRequest r;
@@ -967,9 +951,20 @@ void SpacesProcessor::timerCallback()
 }
 
 //==============================================================================
+// Choosing a room in the UI also moves to that room's default IR and
+// ambience. (A host changing just the Room parameter, e.g. by automation,
+// keeps the IR and ambience indices as they are: the plugin never changes
+// parameters the host has set.)
 void SpacesProcessor::selectRoom (int roomIndex)
 {
     setParamIndex (ParamIDs::room, roomIndex);
+
+    if (auto* r = library.getRoom (jmax (0, readParamIndex (ParamIDs::space)), roomIndex))
+    {
+        setParamIndex (ParamIDs::ir, r->defaultIr);
+        setParamIndex (ParamIDs::ambience, r->defaultAmbience);
+    }
+
     timerCallback();
 }
 
@@ -1005,24 +1000,15 @@ void SpacesProcessor::stepAmbience (int delta)
 
 void SpacesProcessor::applySelection (const Selection& s)
 {
-    const auto onMessageThread = MessageManager::getInstance()->isThisTheMessageThread();
-
-    // Off the message thread the 30 Hz poll will see the room change later;
-    // tell it not to treat it as a user room switch.
-    if (! onMessageThread)
-        suppressRoomDefaultsUntil = Time::getMillisecondCounter() + 500;
-
     const auto c = clampSelection (s);
     setParamIndex (ParamIDs::space, c.space);
     setParamIndex (ParamIDs::room, c.room);
     setParamIndex (ParamIDs::ir, c.ir);
     setParamIndex (ParamIDs::ambience, jmax (0, c.ambience));
 
-    if (onMessageThread)
-    {
-        applied = c;   // so the poll below doesn't treat it as a room change
+    // Off the message thread (some hosts restore state there) the 30 Hz poll picks it up.
+    if (MessageManager::getInstance()->isThisTheMessageThread())
         timerCallback();
-    }
 }
 
 void SpacesProcessor::resetParametersToDefaults (const SpacePack* space)
@@ -1080,9 +1066,6 @@ void SpacesProcessor::restoreStateTree (const ValueTree& tree)
 {
     if (! tree.hasType (apvts.state.getType()))
         return;
-
-    if (! MessageManager::getInstance()->isThisTheMessageThread())
-        suppressRoomDefaultsUntil = Time::getMillisecondCounter() + 500;
 
     // States saved by older versions don't have newer parameters (e.g. Pan).
     // Give those their defaults, otherwise they'd keep whatever value the

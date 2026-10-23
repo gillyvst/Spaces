@@ -68,13 +68,13 @@ public:
     const SpacePack* getCurrentSpace() const;
     const RoomDef* getCurrentRoom() const;
 
-    void selectRoom (int roomIndex);               // also loads the room's default IR + ambience
+    void selectRoom (int roomIndex);               // also picks the room's default IR + ambience
     void selectIr (int irIndex);
     void selectAmbience (int ambienceIndex);
     void stepIr (int delta);
     void stepAmbience (int delta);
 
-    // Sets the selection without applying room defaults (presets, restore).
+    // Sets the whole selection at once (presets, restore).
     void applySelection (const Selection&);
 
     // Resets every parameter to its default, then applies the space's
@@ -138,7 +138,6 @@ private:
     int maxBlockSize = 512;
 
     Selection applied;
-    juce::uint32 suppressRoomDefaultsUntil = 0;
     std::atomic<int> requestedGeneration { 0 };
     LoadRequest lastRequest;
 

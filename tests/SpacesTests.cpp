@@ -298,6 +298,22 @@ static void testSelectionAndState()
     check (std::abs (other.processor->getState().getRawParameterValue (directIDs.length())->load() - 33.0f) < 0.05f,
            "parameters restored from saved state");
 
+    // auval: parameters must keep the value the host set across reset and
+    // initialisation, even selection values the current room can't use.
+    {
+        Harness host;
+        auto& hp = *host.processor;
+        host.set (ParamIDs::room, 2.0f);
+        host.set (ParamIDs::ir, 10.0f);
+        host.set (ParamIDs::ambience, 3.0f);
+        hp.prepareToPlay (44100.0, 256);
+        hp.reset();
+        hp.pollNow();
+        const auto value = [&] (const char* id) { return hp.getState().getRawParameterValue (id)->load(); };
+        check (value (ParamIDs::room) == 2.0f && value (ParamIDs::ir) == 10.0f && value (ParamIDs::ambience) == 3.0f,
+               "host-set selection parameters are never changed by the plugin");
+    }
+
     auto& presets = p.getPresets();
     presets.load (0);
     check (presets.getCurrentName() == presets.getEntries()[0].name, "factory preset loads: " + presets.getCurrentName());
