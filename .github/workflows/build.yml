@@ -30,7 +30,12 @@ jobs:
         run: cmake --build build --target Spaces_AU Spaces_VST3 SpacesTests
 
       - name: Offline engine tests
-        run: ./build/SpacesTests_artefacts/Release/SpacesTests --quick
+        run: |
+          ./build/SpacesTests_artefacts/Release/SpacesTests --quick > tests.log 2>&1 || {
+            echo "::error title=tests failed::$(grep -E 'FAIL|passed' tests.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            exit 1
+          }
+          cat tests.log
 
       - name: Sign (ad-hoc) and install
         run: |
@@ -46,7 +51,13 @@ jobs:
       - name: auval
         run: |
           auval -a | grep -i gily || true
-          auval -strict -v aufx Spcs Gily
+          # On failure, surface the end of the log as an annotation so it can
+          # be read from the run summary.
+          auval -strict -v aufx Spcs Gily > auval.log 2>&1 || {
+            echo "::error title=auval failed::$(tail -80 auval.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            exit 1
+          }
+          tail -30 auval.log
 
       - name: pluginval (VST3 + AU, strictness 10)
         run: |
@@ -54,8 +65,12 @@ jobs:
           curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_macOS.zip
           unzip -q pluginval.zip
           PV=./pluginval.app/Contents/MacOS/pluginval
-          $PV --strictness-level 10 --validate-in-process --timeout-ms 900000 ~/Library/Audio/Plug-Ins/VST3/Spaces.vst3
-          $PV --strictness-level 10 --validate-in-process --timeout-ms 900000 ~/Library/Audio/Plug-Ins/Components/Spaces.component
+          for plugin in ~/Library/Audio/Plug-Ins/VST3/Spaces.vst3 ~/Library/Audio/Plug-Ins/Components/Spaces.component; do
+            $PV --strictness-level 10 --validate-in-process --timeout-ms 900000 "$plugin" > pluginval.log 2>&1 || {
+              echo "::error title=pluginval failed ($(basename "$plugin"))::$(tail -80 pluginval.log | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+              exit 1
+            }
+          done
 
       - name: Package
         run: |
