@@ -1,0 +1,25 @@
+SPACES by Gilly - installing on macOS
+=====================================
+
+1. Copy the plugins into your plug-in folders:
+
+     Spaces.component  ->  ~/Library/Audio/Plug-Ins/Components/
+     Spaces.vst3       ->  ~/Library/Audio/Plug-Ins/VST3/
+
+   (In Finder: Go > Go to Folder..., then paste the folder path.)
+
+2. This build isn't notarised by Apple yet, so macOS quarantines it when it
+   is downloaded. Clear that once in Terminal:
+
+     xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/Components/Spaces.component
+     xattr -dr com.apple.quarantine ~/Library/Audio/Plug-Ins/VST3/Spaces.vst3
+
+3. Restart your DAW.
+     Logic: if Spaces doesn't appear, open Plug-in Manager and click
+            "Reset & Rescan Selection".
+     Ableton Live: Settings > Plug-Ins > "Rescan" (make sure "Use VST3
+            Plug-in System Folders" and/or "Use Audio Units" is on).
+
+The Corsica Studios sounds are inside each plugin bundle, so there is nothing
+else to install. Your own presets are saved in ~/Music/Spaces/Presets, and
+extra space packs go in ~/Music/Spaces/Packs.
