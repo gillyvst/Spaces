@@ -118,7 +118,15 @@ jobs:
         run: |
           curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Linux.zip
           unzip -q pluginval.zip
-          xvfb-run -a ./pluginval --strictness-level 10 --validate-in-process --timeout-ms 900000 build/Spaces_artefacts/Release/VST3/Spaces.vst3
+          sudo apt-get install -y -qq gdb > /dev/null
+          # Run under gdb so a crash leaves a backtrace in the run summary.
+          xvfb-run -a gdb -q -batch -return-child-result -ex run -ex "thread apply all bt 30" \
+            --args ./pluginval --strictness-level 10 --validate-in-process --repeat 3 --randomise --timeout-ms 900000 \
+            build/Spaces_artefacts/Release/VST3/Spaces.vst3 > pluginval.log 2>&1 || {
+            echo "::error title=pluginval failed::$( (grep -n -m1 -B30 -iE 'SIGSEGV|SIGABRT|FAILED' pluginval.log; grep -A60 -m1 'received signal' pluginval.log) | head -150 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')"
+            exit 1
+          }
+          tail -3 pluginval.log
 
       - name: UI screenshots
         run: xvfb-run -a ./build/SpacesTests_artefacts/Release/SpacesTests --screenshots screenshots

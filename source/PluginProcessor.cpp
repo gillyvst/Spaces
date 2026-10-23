@@ -1088,31 +1088,40 @@ void SpacesProcessor::restoreStateTree (const ValueTree& tree)
 
     apvts.replaceState (copy);
 
-    // Resolve the saved IDs back to indices.
-    Selection s { readParamIndex (ParamIDs::space), readParamIndex (ParamIDs::room),
-                  readParamIndex (ParamIDs::ir),    readParamIndex (ParamIDs::ambience) };
+    // The selection parameters are normally right as restored. The saved IDs
+    // only matter if a pack has changed since the state was saved (IRs added
+    // or reordered): then the stored index points at a different item, and
+    // the ID finds the one that was meant. Parameters are only rewritten in
+    // that case, so a host always gets back exactly what it saved.
+    const auto saved = clampSelection ({ readParamIndex (ParamIDs::space), readParamIndex (ParamIDs::room),
+                                         readParamIndex (ParamIDs::ir),    readParamIndex (ParamIDs::ambience) });
+    auto wanted = saved;
 
     if (auto space = library.indexOfPack (tree["spaceId"].toString()); space >= 0)
     {
-        s.space = space;
+        wanted.space = space;
         const auto& pack = *library.getPack (space);
 
         if (auto r = pack.indexOfRoom (tree["roomId"].toString()); r >= 0)
         {
-            s.room = r;
+            wanted.room = r;
             const auto& roomDef = pack.rooms.getReference (r);
 
             if (auto i = roomDef.indexOfIr (tree["irId"].toString()); i >= 0)
-                s.ir = i;
+                wanted.ir = i;
 
             if (auto a = roomDef.indexOfAmbience (tree["ambienceId"].toString()); a >= 0)
-                s.ambience = a;
+                wanted.ambience = a;
         }
     }
 
     if (tree.hasProperty ("uiScale"))   // user presets don't carry it
         uiScale = jlimit (0.5f, 2.0f, (float) tree["uiScale"]);
-    applySelection (s);
+
+    if (! (wanted == saved))
+        applySelection (wanted);
+    else if (MessageManager::getInstance()->isThisTheMessageThread())
+        timerCallback();
 
     if (MessageManager::getInstance()->isThisTheMessageThread())
         presets.setCurrentByName (tree["preset"].toString());
